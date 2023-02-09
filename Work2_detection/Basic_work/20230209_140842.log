@@ -1,0 +1,1342 @@
+2023/02/09 14:08:43 - mmengine - INFO - 
+------------------------------------------------------------
+System environment:
+    sys.platform: linux
+    Python: 3.8.13 (default, Mar 28 2022, 11:38:47) [GCC 7.5.0]
+    CUDA available: True
+    numpy_random_seed: 294670041
+    GPU 0: GeForce RTX 2080 Ti
+    CUDA_HOME: /usr/local/cuda
+    NVCC: Cuda compilation tools, release 10.1, V10.1.10
+    GCC: gcc (Ubuntu 5.4.0-6ubuntu1~16.04.12) 5.4.0 20160609
+    PyTorch: 1.8.1+cu101
+    PyTorch compiling details: PyTorch built with:
+  - GCC 7.3
+  - C++ Version: 201402
+  - Intel(R) oneAPI Math Kernel Library Version 2021.4-Product Build 20210904 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v1.7.0 (Git Hash 7aed236906b1f7a05c0917e5257a1af05e9ff683)
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - NNPACK is enabled
+  - CPU capability usage: AVX2
+  - CUDA Runtime 10.1
+  - NVCC architecture flags: -gencode;arch=compute_37,code=sm_37;-gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_70,code=sm_70
+  - CuDNN 7.6.3
+  - Magma 2.5.2
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, CUDA_VERSION=10.1, CUDNN_VERSION=7.6.3, CXX_COMPILER=/opt/rh/devtoolset-7/root/usr/bin/c++, CXX_FLAGS= -Wno-deprecated -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -fopenmp -DNDEBUG -DUSE_KINETO -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -O2 -fPIC -Wno-narrowing -Wall -Wextra -Werror=return-type -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-unused-local-typedefs -Wno-strict-overflow -Wno-strict-aliasing -Wno-error=deprecated-declarations -Wno-stringop-overflow -Wno-psabi -Wno-error=pedantic -Wno-error=redundant-decls -Wno-error=old-style-cast -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, TORCH_VERSION=1.8.1, USE_CUDA=ON, USE_CUDNN=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=ON, USE_NNPACK=ON, USE_OPENMP=ON, 
+
+    TorchVision: 0.9.1+cu101
+    OpenCV: 4.6.0
+    MMEngine: 0.5.0
+
+Runtime environment:
+    cudnn_benchmark: False
+    mp_cfg: {'mp_start_method': 'fork', 'opencv_num_threads': 0}
+    dist_cfg: {'backend': 'nccl'}
+    seed: None
+    Distributed launcher: none
+    Distributed training: False
+    GPU number: 1
+------------------------------------------------------------
+
+2023/02/09 14:08:43 - mmengine - INFO - Config:
+model = dict(
+    type='CascadeRCNN',
+    init_cfg=dict(
+        type='Pretrained',
+        checkpoint=
+        'work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth'),
+    data_preprocessor=dict(
+        type='DetDataPreprocessor',
+        mean=[123.675, 116.28, 103.53],
+        std=[58.395, 57.12, 57.375],
+        bgr_to_rgb=True,
+        pad_mask=True,
+        pad_size_divisor=32),
+    backbone=dict(
+        type='ResNet',
+        depth=50,
+        num_stages=4,
+        out_indices=(0, 1, 2, 3),
+        frozen_stages=1,
+        norm_cfg=dict(type='BN', requires_grad=True),
+        norm_eval=True,
+        style='pytorch'),
+    neck=dict(
+        type='FPN',
+        in_channels=[256, 512, 1024, 2048],
+        out_channels=256,
+        num_outs=5),
+    rpn_head=dict(
+        type='RPNHead',
+        in_channels=256,
+        feat_channels=256,
+        anchor_generator=dict(
+            type='AnchorGenerator',
+            scales=[8],
+            ratios=[0.5, 1.0, 2.0],
+            strides=[4, 8, 16, 32, 64]),
+        bbox_coder=dict(
+            type='DeltaXYWHBBoxCoder',
+            target_means=[0.0, 0.0, 0.0, 0.0],
+            target_stds=[1.0, 1.0, 1.0, 1.0]),
+        loss_cls=dict(
+            type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
+        loss_bbox=dict(
+            type='SmoothL1Loss', beta=0.1111111111111111, loss_weight=1.0)),
+    roi_head=dict(
+        type='CascadeRoIHead',
+        num_stages=3,
+        stage_loss_weights=[1, 0.5, 0.25],
+        bbox_roi_extractor=dict(
+            type='SingleRoIExtractor',
+            roi_layer=dict(type='RoIAlign', output_size=7, sampling_ratio=0),
+            out_channels=256,
+            featmap_strides=[4, 8, 16, 32]),
+        bbox_head=[
+            dict(
+                type='Shared2FCBBoxHead',
+                in_channels=256,
+                fc_out_channels=1024,
+                roi_feat_size=7,
+                num_classes=1,
+                bbox_coder=dict(
+                    type='DeltaXYWHBBoxCoder',
+                    target_means=[0.0, 0.0, 0.0, 0.0],
+                    target_stds=[0.1, 0.1, 0.2, 0.2]),
+                reg_class_agnostic=True,
+                loss_cls=dict(
+                    type='CrossEntropyLoss',
+                    use_sigmoid=False,
+                    loss_weight=1.0),
+                loss_bbox=dict(type='SmoothL1Loss', beta=1.0,
+                               loss_weight=1.0)),
+            dict(
+                type='Shared2FCBBoxHead',
+                in_channels=256,
+                fc_out_channels=1024,
+                roi_feat_size=7,
+                num_classes=1,
+                bbox_coder=dict(
+                    type='DeltaXYWHBBoxCoder',
+                    target_means=[0.0, 0.0, 0.0, 0.0],
+                    target_stds=[0.05, 0.05, 0.1, 0.1]),
+                reg_class_agnostic=True,
+                loss_cls=dict(
+                    type='CrossEntropyLoss',
+                    use_sigmoid=False,
+                    loss_weight=1.0),
+                loss_bbox=dict(type='SmoothL1Loss', beta=1.0,
+                               loss_weight=1.0)),
+            dict(
+                type='Shared2FCBBoxHead',
+                in_channels=256,
+                fc_out_channels=1024,
+                roi_feat_size=7,
+                num_classes=1,
+                bbox_coder=dict(
+                    type='DeltaXYWHBBoxCoder',
+                    target_means=[0.0, 0.0, 0.0, 0.0],
+                    target_stds=[0.033, 0.033, 0.067, 0.067]),
+                reg_class_agnostic=True,
+                loss_cls=dict(
+                    type='CrossEntropyLoss',
+                    use_sigmoid=False,
+                    loss_weight=1.0),
+                loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0))
+        ],
+        mask_roi_extractor=dict(
+            type='SingleRoIExtractor',
+            roi_layer=dict(type='RoIAlign', output_size=14, sampling_ratio=0),
+            out_channels=256,
+            featmap_strides=[4, 8, 16, 32]),
+        mask_head=dict(
+            type='FCNMaskHead',
+            num_convs=4,
+            in_channels=256,
+            conv_out_channels=256,
+            num_classes=1,
+            loss_mask=dict(
+                type='CrossEntropyLoss', use_mask=True, loss_weight=1.0))),
+    train_cfg=dict(
+        rpn=dict(
+            assigner=dict(
+                type='MaxIoUAssigner',
+                pos_iou_thr=0.7,
+                neg_iou_thr=0.3,
+                min_pos_iou=0.3,
+                match_low_quality=True,
+                ignore_iof_thr=-1),
+            sampler=dict(
+                type='RandomSampler',
+                num=256,
+                pos_fraction=0.5,
+                neg_pos_ub=-1,
+                add_gt_as_proposals=False),
+            allowed_border=0,
+            pos_weight=-1,
+            debug=False),
+        rpn_proposal=dict(
+            nms_pre=2000,
+            max_per_img=2000,
+            nms=dict(type='nms', iou_threshold=0.7),
+            min_bbox_size=0),
+        rcnn=[
+            dict(
+                assigner=dict(
+                    type='MaxIoUAssigner',
+                    pos_iou_thr=0.5,
+                    neg_iou_thr=0.5,
+                    min_pos_iou=0.5,
+                    match_low_quality=False,
+                    ignore_iof_thr=-1),
+                sampler=dict(
+                    type='RandomSampler',
+                    num=512,
+                    pos_fraction=0.25,
+                    neg_pos_ub=-1,
+                    add_gt_as_proposals=True),
+                mask_size=28,
+                pos_weight=-1,
+                debug=False),
+            dict(
+                assigner=dict(
+                    type='MaxIoUAssigner',
+                    pos_iou_thr=0.6,
+                    neg_iou_thr=0.6,
+                    min_pos_iou=0.6,
+                    match_low_quality=False,
+                    ignore_iof_thr=-1),
+                sampler=dict(
+                    type='RandomSampler',
+                    num=512,
+                    pos_fraction=0.25,
+                    neg_pos_ub=-1,
+                    add_gt_as_proposals=True),
+                mask_size=28,
+                pos_weight=-1,
+                debug=False),
+            dict(
+                assigner=dict(
+                    type='MaxIoUAssigner',
+                    pos_iou_thr=0.7,
+                    neg_iou_thr=0.7,
+                    min_pos_iou=0.7,
+                    match_low_quality=False,
+                    ignore_iof_thr=-1),
+                sampler=dict(
+                    type='RandomSampler',
+                    num=512,
+                    pos_fraction=0.25,
+                    neg_pos_ub=-1,
+                    add_gt_as_proposals=True),
+                mask_size=28,
+                pos_weight=-1,
+                debug=False)
+        ]),
+    test_cfg=dict(
+        rpn=dict(
+            nms_pre=1000,
+            max_per_img=1000,
+            nms=dict(type='nms', iou_threshold=0.7),
+            min_bbox_size=0),
+        rcnn=dict(
+            score_thr=0.05,
+            nms=dict(type='nms', iou_threshold=0.5),
+            max_per_img=100,
+            mask_thr_binary=0.5)))
+dataset_type = 'CocoDataset'
+data_root = './data/'
+metainfo = dict(CLASSES=('balloon', ), PALETTE=[(220, 20, 60)])
+file_client_args = dict(backend='disk')
+train_pipeline = [
+    dict(type='LoadImageFromFile', file_client_args=dict(backend='disk')),
+    dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
+    dict(type='Resize', scale=(1333, 800), keep_ratio=True),
+    dict(type='RandomFlip', prob=0.5),
+    dict(type='PackDetInputs')
+]
+test_pipeline = [
+    dict(type='LoadImageFromFile', file_client_args=dict(backend='disk')),
+    dict(type='Resize', scale=(1333, 800), keep_ratio=True),
+    dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
+    dict(
+        type='PackDetInputs',
+        meta_keys=('img_id', 'img_path', 'ori_shape', 'img_shape',
+                   'scale_factor'))
+]
+train_dataloader = dict(
+    batch_size=2,
+    num_workers=2,
+    persistent_workers=False,
+    sampler=dict(type='DefaultSampler', shuffle=True),
+    batch_sampler=dict(type='AspectRatioBatchSampler'),
+    dataset=dict(
+        type='CocoDataset',
+        data_root='./data/',
+        ann_file='./balloondatasets/balloon/train/annotation_coco.json',
+        data_prefix=dict(img='./balloondatasets/balloon/train/'),
+        filter_cfg=dict(filter_empty_gt=True, min_size=32),
+        pipeline=[
+            dict(
+                type='LoadImageFromFile',
+                file_client_args=dict(backend='disk')),
+            dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
+            dict(type='Resize', scale=(1333, 800), keep_ratio=True),
+            dict(type='RandomFlip', prob=0.5),
+            dict(type='PackDetInputs')
+        ]))
+val_dataloader = dict(
+    batch_size=1,
+    num_workers=2,
+    persistent_workers=True,
+    drop_last=False,
+    sampler=dict(type='DefaultSampler', shuffle=False),
+    dataset=dict(
+        type='CocoDataset',
+        data_root='./data/',
+        ann_file='./balloondatasets/balloon/val/annotation_coco.json',
+        data_prefix=dict(img='./balloondatasets/balloon/val/'),
+        test_mode=True,
+        pipeline=[
+            dict(
+                type='LoadImageFromFile',
+                file_client_args=dict(backend='disk')),
+            dict(type='Resize', scale=(1333, 800), keep_ratio=True),
+            dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
+            dict(
+                type='PackDetInputs',
+                meta_keys=('img_id', 'img_path', 'ori_shape', 'img_shape',
+                           'scale_factor'))
+        ]))
+test_dataloader = dict(
+    batch_size=1,
+    num_workers=2,
+    persistent_workers=True,
+    drop_last=False,
+    sampler=dict(type='DefaultSampler', shuffle=False),
+    dataset=dict(
+        type='CocoDataset',
+        data_root='./data/',
+        ann_file='./balloondatasets/balloon/val/annotation_coco.json',
+        data_prefix=dict(img='./balloondatasets/balloon/val/'),
+        test_mode=True,
+        pipeline=[
+            dict(
+                type='LoadImageFromFile',
+                file_client_args=dict(backend='disk')),
+            dict(type='Resize', scale=(1333, 800), keep_ratio=True),
+            dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
+            dict(
+                type='PackDetInputs',
+                meta_keys=('img_id', 'img_path', 'ori_shape', 'img_shape',
+                           'scale_factor'))
+        ]))
+val_evaluator = dict(
+    type='CocoMetric',
+    ann_file='./data/./balloondatasets/balloon/val/annotation_coco.json',
+    metric=['bbox', 'segm'],
+    format_only=False)
+test_evaluator = dict(
+    type='CocoMetric',
+    ann_file='./data/./balloondatasets/balloon/val/annotation_coco.json',
+    metric=['bbox', 'segm'],
+    format_only=False)
+train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=12, val_interval=1)
+val_cfg = dict(type='ValLoop')
+test_cfg = dict(type='TestLoop')
+param_scheduler = [
+    dict(
+        type='LinearLR', start_factor=0.001, by_epoch=False, begin=0, end=500),
+    dict(
+        type='MultiStepLR',
+        begin=0,
+        end=12,
+        by_epoch=True,
+        milestones=[8, 11],
+        gamma=0.1)
+]
+optim_wrapper = dict(
+    type='OptimWrapper',
+    optimizer=dict(type='SGD', lr=0.002, momentum=0.9, weight_decay=0.0001))
+auto_scale_lr = dict(enable=False, base_batch_size=16)
+default_scope = 'mmdet'
+default_hooks = dict(
+    timer=dict(type='IterTimerHook'),
+    logger=dict(type='LoggerHook', interval=10),
+    param_scheduler=dict(type='ParamSchedulerHook'),
+    checkpoint=dict(type='CheckpointHook', interval=1),
+    sampler_seed=dict(type='DistSamplerSeedHook'),
+    visualization=dict(type='DetVisualizationHook'))
+env_cfg = dict(
+    cudnn_benchmark=False,
+    mp_cfg=dict(mp_start_method='fork', opencv_num_threads=0),
+    dist_cfg=dict(backend='nccl'))
+vis_backends = [dict(type='LocalVisBackend')]
+visualizer = dict(
+    type='DetLocalVisualizer',
+    vis_backends=[dict(type='LocalVisBackend')],
+    name='visualizer')
+log_processor = dict(type='LogProcessor', window_size=50, by_epoch=True)
+log_level = 'INFO'
+load_from = None
+resume = False
+launcher = 'none'
+work_dir = './work_dirs/cascade-mask-rcnn_r50_fpn_1x_coco'
+
+2023/02/09 14:08:43 - mmengine - WARNING - The "visualizer" registry in mmdet did not set import location. Fallback to call `mmdet.utils.register_all_modules` instead.
+2023/02/09 14:08:43 - mmengine - WARNING - The "vis_backend" registry in mmdet did not set import location. Fallback to call `mmdet.utils.register_all_modules` instead.
+2023/02/09 14:08:43 - mmengine - WARNING - The "model" registry in mmdet did not set import location. Fallback to call `mmdet.utils.register_all_modules` instead.
+2023/02/09 14:08:44 - mmengine - WARNING - The "task util" registry in mmdet did not set import location. Fallback to call `mmdet.utils.register_all_modules` instead.
+2023/02/09 14:08:46 - mmengine - INFO - Distributed training is not used, all SyncBatchNorm (SyncBN) layers in the model will be automatically reverted to BatchNormXd layers if they are used.
+2023/02/09 14:08:46 - mmengine - WARNING - The "hook" registry in mmdet did not set import location. Fallback to call `mmdet.utils.register_all_modules` instead.
+2023/02/09 14:08:46 - mmengine - INFO - Hooks will be executed in the following order:
+before_run:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+before_train:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+before_train_epoch:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(NORMAL      ) DistSamplerSeedHook                
+ -------------------- 
+before_train_iter:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+after_train_iter:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+(LOW         ) ParamSchedulerHook                 
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+after_train_epoch:
+(NORMAL      ) IterTimerHook                      
+(LOW         ) ParamSchedulerHook                 
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+before_val_epoch:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+before_val_iter:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+after_val_iter:
+(NORMAL      ) IterTimerHook                      
+(NORMAL      ) DetVisualizationHook               
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+after_val_epoch:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+(LOW         ) ParamSchedulerHook                 
+(VERY_LOW    ) CheckpointHook                     
+ -------------------- 
+before_test_epoch:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+before_test_iter:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+after_test_iter:
+(NORMAL      ) IterTimerHook                      
+(NORMAL      ) DetVisualizationHook               
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+after_test_epoch:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+after_run:
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+2023/02/09 14:08:47 - mmengine - WARNING - The "loop" registry in mmdet did not set import location. Fallback to call `mmdet.utils.register_all_modules` instead.
+2023/02/09 14:08:47 - mmengine - WARNING - The "dataset" registry in mmdet did not set import location. Fallback to call `mmdet.utils.register_all_modules` instead.
+2023/02/09 14:08:47 - mmengine - WARNING - The "transform" registry in mmdet did not set import location. Fallback to call `mmdet.utils.register_all_modules` instead.
+2023/02/09 14:08:47 - mmengine - WARNING - The "data sampler" registry in mmdet did not set import location. Fallback to call `mmdet.utils.register_all_modules` instead.
+2023/02/09 14:08:47 - mmengine - WARNING - The "optimizer constructor" registry in mmdet did not set import location. Fallback to call `mmdet.utils.register_all_modules` instead.
+2023/02/09 14:08:47 - mmengine - WARNING - The "optimizer" registry in mmdet did not set import location. Fallback to call `mmdet.utils.register_all_modules` instead.
+2023/02/09 14:08:47 - mmengine - WARNING - The "optim_wrapper" registry in mmdet did not set import location. Fallback to call `mmdet.utils.register_all_modules` instead.
+2023/02/09 14:08:47 - mmengine - WARNING - The "parameter scheduler" registry in mmdet did not set import location. Fallback to call `mmdet.utils.register_all_modules` instead.
+2023/02/09 14:08:47 - mmengine - WARNING - The "metric" registry in mmdet did not set import location. Fallback to call `mmdet.utils.register_all_modules` instead.
+2023/02/09 14:08:47 - mmengine - WARNING - The "weight initializer" registry in mmdet did not set import location. Fallback to call `mmdet.utils.register_all_modules` instead.
+2023/02/09 14:08:47 - mmengine - INFO - load model from: work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth
+2023/02/09 14:08:47 - mmengine - INFO - Loads checkpoint by local backend from path: work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth
+2023/02/09 14:08:47 - mmengine - WARNING - The model and loaded state dict do not match exactly
+
+size mismatch for roi_head.bbox_head.0.fc_cls.weight: copying a param with shape torch.Size([81, 1024]) from checkpoint, the shape in current model is torch.Size([2, 1024]).
+size mismatch for roi_head.bbox_head.0.fc_cls.bias: copying a param with shape torch.Size([81]) from checkpoint, the shape in current model is torch.Size([2]).
+size mismatch for roi_head.bbox_head.1.fc_cls.weight: copying a param with shape torch.Size([81, 1024]) from checkpoint, the shape in current model is torch.Size([2, 1024]).
+size mismatch for roi_head.bbox_head.1.fc_cls.bias: copying a param with shape torch.Size([81]) from checkpoint, the shape in current model is torch.Size([2]).
+size mismatch for roi_head.bbox_head.2.fc_cls.weight: copying a param with shape torch.Size([81, 1024]) from checkpoint, the shape in current model is torch.Size([2, 1024]).
+size mismatch for roi_head.bbox_head.2.fc_cls.bias: copying a param with shape torch.Size([81]) from checkpoint, the shape in current model is torch.Size([2]).
+size mismatch for roi_head.mask_head.0.conv_logits.weight: copying a param with shape torch.Size([80, 256, 1, 1]) from checkpoint, the shape in current model is torch.Size([1, 256, 1, 1]).
+size mismatch for roi_head.mask_head.0.conv_logits.bias: copying a param with shape torch.Size([80]) from checkpoint, the shape in current model is torch.Size([1]).
+size mismatch for roi_head.mask_head.1.conv_logits.weight: copying a param with shape torch.Size([80, 256, 1, 1]) from checkpoint, the shape in current model is torch.Size([1, 256, 1, 1]).
+size mismatch for roi_head.mask_head.1.conv_logits.bias: copying a param with shape torch.Size([80]) from checkpoint, the shape in current model is torch.Size([1]).
+size mismatch for roi_head.mask_head.2.conv_logits.weight: copying a param with shape torch.Size([80, 256, 1, 1]) from checkpoint, the shape in current model is torch.Size([1, 256, 1, 1]).
+size mismatch for roi_head.mask_head.2.conv_logits.bias: copying a param with shape torch.Size([80]) from checkpoint, the shape in current model is torch.Size([1]).
+Name of parameter - Initialization information
+
+backbone.conv1.weight - torch.Size([64, 3, 7, 7]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.bn1.weight - torch.Size([64]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.bn1.bias - torch.Size([64]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.0.conv1.weight - torch.Size([64, 64, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.0.bn1.weight - torch.Size([64]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.0.bn1.bias - torch.Size([64]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.0.conv2.weight - torch.Size([64, 64, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.0.bn2.weight - torch.Size([64]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.0.bn2.bias - torch.Size([64]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.0.conv3.weight - torch.Size([256, 64, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.0.bn3.weight - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.0.bn3.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.0.downsample.0.weight - torch.Size([256, 64, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.0.downsample.1.weight - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.0.downsample.1.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.1.conv1.weight - torch.Size([64, 256, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.1.bn1.weight - torch.Size([64]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.1.bn1.bias - torch.Size([64]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.1.conv2.weight - torch.Size([64, 64, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.1.bn2.weight - torch.Size([64]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.1.bn2.bias - torch.Size([64]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.1.conv3.weight - torch.Size([256, 64, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.1.bn3.weight - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.1.bn3.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.2.conv1.weight - torch.Size([64, 256, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.2.bn1.weight - torch.Size([64]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.2.bn1.bias - torch.Size([64]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.2.conv2.weight - torch.Size([64, 64, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.2.bn2.weight - torch.Size([64]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.2.bn2.bias - torch.Size([64]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.2.conv3.weight - torch.Size([256, 64, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.2.bn3.weight - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer1.2.bn3.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.0.conv1.weight - torch.Size([128, 256, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.0.bn1.weight - torch.Size([128]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.0.bn1.bias - torch.Size([128]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.0.conv2.weight - torch.Size([128, 128, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.0.bn2.weight - torch.Size([128]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.0.bn2.bias - torch.Size([128]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.0.conv3.weight - torch.Size([512, 128, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.0.bn3.weight - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.0.bn3.bias - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.0.downsample.0.weight - torch.Size([512, 256, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.0.downsample.1.weight - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.0.downsample.1.bias - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.1.conv1.weight - torch.Size([128, 512, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.1.bn1.weight - torch.Size([128]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.1.bn1.bias - torch.Size([128]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.1.conv2.weight - torch.Size([128, 128, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.1.bn2.weight - torch.Size([128]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.1.bn2.bias - torch.Size([128]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.1.conv3.weight - torch.Size([512, 128, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.1.bn3.weight - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.1.bn3.bias - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.2.conv1.weight - torch.Size([128, 512, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.2.bn1.weight - torch.Size([128]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.2.bn1.bias - torch.Size([128]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.2.conv2.weight - torch.Size([128, 128, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.2.bn2.weight - torch.Size([128]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.2.bn2.bias - torch.Size([128]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.2.conv3.weight - torch.Size([512, 128, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.2.bn3.weight - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.2.bn3.bias - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.3.conv1.weight - torch.Size([128, 512, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.3.bn1.weight - torch.Size([128]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.3.bn1.bias - torch.Size([128]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.3.conv2.weight - torch.Size([128, 128, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.3.bn2.weight - torch.Size([128]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.3.bn2.bias - torch.Size([128]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.3.conv3.weight - torch.Size([512, 128, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.3.bn3.weight - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer2.3.bn3.bias - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.0.conv1.weight - torch.Size([256, 512, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.0.bn1.weight - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.0.bn1.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.0.conv2.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.0.bn2.weight - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.0.bn2.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.0.conv3.weight - torch.Size([1024, 256, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.0.bn3.weight - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.0.bn3.bias - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.0.downsample.0.weight - torch.Size([1024, 512, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.0.downsample.1.weight - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.0.downsample.1.bias - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.1.conv1.weight - torch.Size([256, 1024, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.1.bn1.weight - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.1.bn1.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.1.conv2.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.1.bn2.weight - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.1.bn2.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.1.conv3.weight - torch.Size([1024, 256, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.1.bn3.weight - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.1.bn3.bias - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.2.conv1.weight - torch.Size([256, 1024, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.2.bn1.weight - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.2.bn1.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.2.conv2.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.2.bn2.weight - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.2.bn2.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.2.conv3.weight - torch.Size([1024, 256, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.2.bn3.weight - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.2.bn3.bias - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.3.conv1.weight - torch.Size([256, 1024, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.3.bn1.weight - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.3.bn1.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.3.conv2.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.3.bn2.weight - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.3.bn2.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.3.conv3.weight - torch.Size([1024, 256, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.3.bn3.weight - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.3.bn3.bias - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.4.conv1.weight - torch.Size([256, 1024, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.4.bn1.weight - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.4.bn1.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.4.conv2.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.4.bn2.weight - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.4.bn2.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.4.conv3.weight - torch.Size([1024, 256, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.4.bn3.weight - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.4.bn3.bias - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.5.conv1.weight - torch.Size([256, 1024, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.5.bn1.weight - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.5.bn1.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.5.conv2.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.5.bn2.weight - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.5.bn2.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.5.conv3.weight - torch.Size([1024, 256, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.5.bn3.weight - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer3.5.bn3.bias - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.0.conv1.weight - torch.Size([512, 1024, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.0.bn1.weight - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.0.bn1.bias - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.0.conv2.weight - torch.Size([512, 512, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.0.bn2.weight - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.0.bn2.bias - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.0.conv3.weight - torch.Size([2048, 512, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.0.bn3.weight - torch.Size([2048]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.0.bn3.bias - torch.Size([2048]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.0.downsample.0.weight - torch.Size([2048, 1024, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.0.downsample.1.weight - torch.Size([2048]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.0.downsample.1.bias - torch.Size([2048]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.1.conv1.weight - torch.Size([512, 2048, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.1.bn1.weight - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.1.bn1.bias - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.1.conv2.weight - torch.Size([512, 512, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.1.bn2.weight - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.1.bn2.bias - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.1.conv3.weight - torch.Size([2048, 512, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.1.bn3.weight - torch.Size([2048]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.1.bn3.bias - torch.Size([2048]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.2.conv1.weight - torch.Size([512, 2048, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.2.bn1.weight - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.2.bn1.bias - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.2.conv2.weight - torch.Size([512, 512, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.2.bn2.weight - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.2.bn2.bias - torch.Size([512]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.2.conv3.weight - torch.Size([2048, 512, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.2.bn3.weight - torch.Size([2048]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+backbone.layer4.2.bn3.bias - torch.Size([2048]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+neck.lateral_convs.0.conv.weight - torch.Size([256, 256, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+neck.lateral_convs.0.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+neck.lateral_convs.1.conv.weight - torch.Size([256, 512, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+neck.lateral_convs.1.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+neck.lateral_convs.2.conv.weight - torch.Size([256, 1024, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+neck.lateral_convs.2.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+neck.lateral_convs.3.conv.weight - torch.Size([256, 2048, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+neck.lateral_convs.3.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+neck.fpn_convs.0.conv.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+neck.fpn_convs.0.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+neck.fpn_convs.1.conv.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+neck.fpn_convs.1.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+neck.fpn_convs.2.conv.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+neck.fpn_convs.2.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+neck.fpn_convs.3.conv.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+neck.fpn_convs.3.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+rpn_head.rpn_conv.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+rpn_head.rpn_conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+rpn_head.rpn_cls.weight - torch.Size([3, 256, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+rpn_head.rpn_cls.bias - torch.Size([3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+rpn_head.rpn_reg.weight - torch.Size([12, 256, 1, 1]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+rpn_head.rpn_reg.bias - torch.Size([12]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.bbox_head.0.fc_cls.weight - torch.Size([2, 1024]): 
+NormalInit: mean=0, std=0.01, bias=0 
+
+roi_head.bbox_head.0.fc_cls.bias - torch.Size([2]): 
+NormalInit: mean=0, std=0.01, bias=0 
+
+roi_head.bbox_head.0.fc_reg.weight - torch.Size([4, 1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.bbox_head.0.fc_reg.bias - torch.Size([4]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.bbox_head.0.shared_fcs.0.weight - torch.Size([1024, 12544]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.bbox_head.0.shared_fcs.0.bias - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.bbox_head.0.shared_fcs.1.weight - torch.Size([1024, 1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.bbox_head.0.shared_fcs.1.bias - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.bbox_head.1.fc_cls.weight - torch.Size([2, 1024]): 
+NormalInit: mean=0, std=0.01, bias=0 
+
+roi_head.bbox_head.1.fc_cls.bias - torch.Size([2]): 
+NormalInit: mean=0, std=0.01, bias=0 
+
+roi_head.bbox_head.1.fc_reg.weight - torch.Size([4, 1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.bbox_head.1.fc_reg.bias - torch.Size([4]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.bbox_head.1.shared_fcs.0.weight - torch.Size([1024, 12544]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.bbox_head.1.shared_fcs.0.bias - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.bbox_head.1.shared_fcs.1.weight - torch.Size([1024, 1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.bbox_head.1.shared_fcs.1.bias - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.bbox_head.2.fc_cls.weight - torch.Size([2, 1024]): 
+NormalInit: mean=0, std=0.01, bias=0 
+
+roi_head.bbox_head.2.fc_cls.bias - torch.Size([2]): 
+NormalInit: mean=0, std=0.01, bias=0 
+
+roi_head.bbox_head.2.fc_reg.weight - torch.Size([4, 1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.bbox_head.2.fc_reg.bias - torch.Size([4]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.bbox_head.2.shared_fcs.0.weight - torch.Size([1024, 12544]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.bbox_head.2.shared_fcs.0.bias - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.bbox_head.2.shared_fcs.1.weight - torch.Size([1024, 1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.bbox_head.2.shared_fcs.1.bias - torch.Size([1024]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.0.convs.0.conv.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.0.convs.0.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.0.convs.1.conv.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.0.convs.1.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.0.convs.2.conv.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.0.convs.2.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.0.convs.3.conv.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.0.convs.3.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.0.upsample.weight - torch.Size([256, 256, 2, 2]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.0.upsample.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.0.conv_logits.weight - torch.Size([1, 256, 1, 1]): 
+The value is the same before and after calling `init_weights` of CascadeRCNN  
+
+roi_head.mask_head.0.conv_logits.bias - torch.Size([1]): 
+The value is the same before and after calling `init_weights` of CascadeRCNN  
+
+roi_head.mask_head.1.convs.0.conv.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.1.convs.0.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.1.convs.1.conv.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.1.convs.1.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.1.convs.2.conv.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.1.convs.2.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.1.convs.3.conv.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.1.convs.3.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.1.upsample.weight - torch.Size([256, 256, 2, 2]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.1.upsample.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.1.conv_logits.weight - torch.Size([1, 256, 1, 1]): 
+The value is the same before and after calling `init_weights` of CascadeRCNN  
+
+roi_head.mask_head.1.conv_logits.bias - torch.Size([1]): 
+The value is the same before and after calling `init_weights` of CascadeRCNN  
+
+roi_head.mask_head.2.convs.0.conv.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.2.convs.0.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.2.convs.1.conv.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.2.convs.1.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.2.convs.2.conv.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.2.convs.2.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.2.convs.3.conv.weight - torch.Size([256, 256, 3, 3]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.2.convs.3.conv.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.2.upsample.weight - torch.Size([256, 256, 2, 2]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.2.upsample.bias - torch.Size([256]): 
+PretrainedInit: load from work_config/cascade_mask_rcnn_r50_fpn_1x_coco_20200203-9d4dcb24.pth 
+
+roi_head.mask_head.2.conv_logits.weight - torch.Size([1, 256, 1, 1]): 
+The value is the same before and after calling `init_weights` of CascadeRCNN  
+
+roi_head.mask_head.2.conv_logits.bias - torch.Size([1]): 
+The value is the same before and after calling `init_weights` of CascadeRCNN  
+2023/02/09 14:08:47 - mmengine - INFO - Checkpoints will be saved to /home/mi/Desktop/Project/mmdetection/work_dirs/cascade-mask-rcnn_r50_fpn_1x_coco.
+2023/02/09 14:08:52 - mmengine - INFO - Epoch(train)  [1][10/31]  lr: 3.8036e-05  eta: 0:02:35  time: 0.4282  data_time: 0.0265  memory: 4994  loss: 2.3950  loss_rpn_cls: 0.0470  loss_rpn_bbox: 0.0087  s0.loss_cls: 0.6352  s0.acc: 80.3711  s0.loss_bbox: 0.0321  s0.loss_mask: 0.6859  s1.loss_cls: 0.3404  s1.acc: 56.2500  s1.loss_bbox: 0.0232  s1.loss_mask: 0.2912  s2.loss_cls: 0.2215  s2.acc: 41.3086  s2.loss_bbox: 0.0159  s2.loss_mask: 0.0938
+2023/02/09 14:08:56 - mmengine - INFO - Epoch(train)  [1][20/31]  lr: 7.8076e-05  eta: 0:02:27  time: 0.4185  data_time: 0.0182  memory: 5122  loss: 2.2568  loss_rpn_cls: 0.0543  loss_rpn_bbox: 0.0085  s0.loss_cls: 0.5622  s0.acc: 95.0195  s0.loss_bbox: 0.0432  s0.loss_mask: 0.6454  s1.loss_cls: 0.3186  s1.acc: 90.1367  s1.loss_bbox: 0.0338  s1.loss_mask: 0.2732  s2.loss_cls: 0.2033  s2.acc: 59.8633  s2.loss_bbox: 0.0214  s2.loss_mask: 0.0928
+2023/02/09 14:09:00 - mmengine - INFO - Epoch(train)  [1][30/31]  lr: 1.1812e-04  eta: 0:02:24  time: 0.4234  data_time: 0.0165  memory: 5022  loss: 2.0616  loss_rpn_cls: 0.0468  loss_rpn_bbox: 0.0091  s0.loss_cls: 0.4927  s0.acc: 84.1797  s0.loss_bbox: 0.0430  s0.loss_mask: 0.5945  s1.loss_cls: 0.2905  s1.acc: 82.4579  s1.loss_bbox: 0.0374  s1.loss_mask: 0.2515  s2.loss_cls: 0.1818  s2.acc: 83.2492  s2.loss_bbox: 0.0237  s2.loss_mask: 0.0906
+2023/02/09 14:09:00 - mmengine - INFO - Exp name: cascade-mask-rcnn_r50_fpn_1x_coco_20230209_140842
+2023/02/09 14:09:00 - mmengine - INFO - Saving checkpoint at 1 epochs
+2023/02/09 14:09:07 - mmengine - INFO - Epoch(val)  [1][10/13]    eta: 0:00:01  time: 0.5495  data_time: 0.0323  memory: 3312  
+2023/02/09 14:09:08 - mmengine - INFO - Evaluating bbox...
+2023/02/09 14:09:08 - mmengine - INFO - bbox_mAP_copypaste: 0.169 0.203 0.192 0.021 0.167 0.237
+2023/02/09 14:09:08 - mmengine - INFO - Evaluating segm...
+2023/02/09 14:09:08 - mmengine - INFO - segm_mAP_copypaste: 0.157 0.203 0.189 0.008 0.143 0.258
+2023/02/09 14:09:08 - mmengine - INFO - Epoch(val) [1][13/13]  coco/bbox_mAP: 0.1690  coco/bbox_mAP_50: 0.2030  coco/bbox_mAP_75: 0.1920  coco/bbox_mAP_s: 0.0210  coco/bbox_mAP_m: 0.1670  coco/bbox_mAP_l: 0.2370  coco/segm_mAP: 0.1570  coco/segm_mAP_50: 0.2030  coco/segm_mAP_75: 0.1890  coco/segm_mAP_s: 0.0080  coco/segm_mAP_m: 0.1430  coco/segm_mAP_l: 0.2580
+2023/02/09 14:09:13 - mmengine - INFO - Epoch(train)  [2][10/31]  lr: 1.6216e-04  eta: 0:02:21  time: 0.4260  data_time: 0.0191  memory: 5113  loss: 1.8671  loss_rpn_cls: 0.0468  loss_rpn_bbox: 0.0091  s0.loss_cls: 0.4266  s0.acc: 94.3359  s0.loss_bbox: 0.0445  s0.loss_mask: 0.5386  s1.loss_cls: 0.2592  s1.acc: 92.6758  s1.loss_bbox: 0.0403  s1.loss_mask: 0.2301  s2.loss_cls: 0.1582  s2.acc: 92.1875  s2.loss_bbox: 0.0261  s2.loss_mask: 0.0876
+2023/02/09 14:09:17 - mmengine - INFO - Epoch(train)  [2][20/31]  lr: 2.0220e-04  eta: 0:02:15  time: 0.4193  data_time: 0.0140  memory: 4961  loss: 1.6535  loss_rpn_cls: 0.0425  loss_rpn_bbox: 0.0081  s0.loss_cls: 0.3725  s0.acc: 95.8008  s0.loss_bbox: 0.0387  s0.loss_mask: 0.4757  s1.loss_cls: 0.2312  s1.acc: 94.0430  s1.loss_bbox: 0.0353  s1.loss_mask: 0.2045  s2.loss_cls: 0.1410  s2.acc: 93.5547  s2.loss_bbox: 0.0231  s2.loss_mask: 0.0810
+2023/02/09 14:09:21 - mmengine - INFO - Epoch(train)  [2][30/31]  lr: 2.4224e-04  eta: 0:02:12  time: 0.4220  data_time: 0.0136  memory: 5405  loss: 1.3689  loss_rpn_cls: 0.0372  loss_rpn_bbox: 0.0077  s0.loss_cls: 0.2888  s0.acc: 98.0469  s0.loss_bbox: 0.0394  s0.loss_mask: 0.3838  s1.loss_cls: 0.1923  s1.acc: 93.2617  s1.loss_bbox: 0.0382  s1.loss_mask: 0.1688  s2.loss_cls: 0.1145  s2.acc: 92.6758  s2.loss_bbox: 0.0254  s2.loss_mask: 0.0729
+2023/02/09 14:09:21 - mmengine - INFO - Exp name: cascade-mask-rcnn_r50_fpn_1x_coco_20230209_140842
+2023/02/09 14:09:21 - mmengine - INFO - Saving checkpoint at 2 epochs
+2023/02/09 14:09:27 - mmengine - INFO - Epoch(val)  [2][10/13]    eta: 0:00:01  time: 0.4563  data_time: 0.0263  memory: 4281  
+2023/02/09 14:09:28 - mmengine - INFO - Evaluating bbox...
+2023/02/09 14:09:28 - mmengine - INFO - bbox_mAP_copypaste: 0.740 0.822 0.815 0.069 0.583 0.818
+2023/02/09 14:09:28 - mmengine - INFO - Evaluating segm...
+2023/02/09 14:09:28 - mmengine - INFO - segm_mAP_copypaste: 0.701 0.821 0.810 0.030 0.555 0.774
+2023/02/09 14:09:28 - mmengine - INFO - Epoch(val) [2][13/13]  coco/bbox_mAP: 0.7400  coco/bbox_mAP_50: 0.8220  coco/bbox_mAP_75: 0.8150  coco/bbox_mAP_s: 0.0690  coco/bbox_mAP_m: 0.5830  coco/bbox_mAP_l: 0.8180  coco/segm_mAP: 0.7010  coco/segm_mAP_50: 0.8210  coco/segm_mAP_75: 0.8100  coco/segm_mAP_s: 0.0300  coco/segm_mAP_m: 0.5550  coco/segm_mAP_l: 0.7740
+2023/02/09 14:09:32 - mmengine - INFO - Epoch(train)  [3][10/31]  lr: 2.8628e-04  eta: 0:02:08  time: 0.4309  data_time: 0.0171  memory: 4964  loss: 1.1001  loss_rpn_cls: 0.0343  loss_rpn_bbox: 0.0079  s0.loss_cls: 0.2203  s0.acc: 98.9258  s0.loss_bbox: 0.0381  s0.loss_mask: 0.2925  s1.loss_cls: 0.1527  s1.acc: 98.1445  s1.loss_bbox: 0.0386  s1.loss_mask: 0.1353  s2.loss_cls: 0.0901  s2.acc: 88.5742  s2.loss_bbox: 0.0259  s2.loss_mask: 0.0645
+2023/02/09 14:09:37 - mmengine - INFO - Epoch(train)  [3][20/31]  lr: 3.2632e-04  eta: 0:02:05  time: 0.4387  data_time: 0.0157  memory: 5187  loss: 0.9202  loss_rpn_cls: 0.0316  loss_rpn_bbox: 0.0077  s0.loss_cls: 0.1822  s0.acc: 96.8750  s0.loss_bbox: 0.0361  s0.loss_mask: 0.2348  s1.loss_cls: 0.1254  s1.acc: 95.6653  s1.loss_bbox: 0.0338  s1.loss_mask: 0.1122  s2.loss_cls: 0.0755  s2.acc: 94.9239  s2.loss_bbox: 0.0240  s2.loss_mask: 0.0569
+2023/02/09 14:09:42 - mmengine - INFO - Epoch(train)  [3][30/31]  lr: 3.6636e-04  eta: 0:02:01  time: 0.4386  data_time: 0.0140  memory: 4976  loss: 0.7727  loss_rpn_cls: 0.0275  loss_rpn_bbox: 0.0068  s0.loss_cls: 0.1527  s0.acc: 98.5352  s0.loss_bbox: 0.0333  s0.loss_mask: 0.1871  s1.loss_cls: 0.1037  s1.acc: 99.6094  s1.loss_bbox: 0.0307  s1.loss_mask: 0.0938  s2.loss_cls: 0.0658  s2.acc: 99.3164  s2.loss_bbox: 0.0219  s2.loss_mask: 0.0494
+2023/02/09 14:09:42 - mmengine - INFO - Exp name: cascade-mask-rcnn_r50_fpn_1x_coco_20230209_140842
+2023/02/09 14:09:42 - mmengine - INFO - Saving checkpoint at 3 epochs
+2023/02/09 14:09:46 - mmengine - INFO - Epoch(val)  [3][10/13]    eta: 0:00:00  time: 0.3891  data_time: 0.0229  memory: 3355  
+2023/02/09 14:09:47 - mmengine - INFO - Evaluating bbox...
+2023/02/09 14:09:47 - mmengine - INFO - bbox_mAP_copypaste: 0.778 0.862 0.856 0.071 0.697 0.842
+2023/02/09 14:09:47 - mmengine - INFO - Evaluating segm...
+2023/02/09 14:09:47 - mmengine - INFO - segm_mAP_copypaste: 0.786 0.862 0.848 0.025 0.694 0.855
+2023/02/09 14:09:47 - mmengine - INFO - Epoch(val) [3][13/13]  coco/bbox_mAP: 0.7780  coco/bbox_mAP_50: 0.8620  coco/bbox_mAP_75: 0.8560  coco/bbox_mAP_s: 0.0710  coco/bbox_mAP_m: 0.6970  coco/bbox_mAP_l: 0.8420  coco/segm_mAP: 0.7860  coco/segm_mAP_50: 0.8620  coco/segm_mAP_75: 0.8480  coco/segm_mAP_s: 0.0250  coco/segm_mAP_m: 0.6940  coco/segm_mAP_l: 0.8550
+2023/02/09 14:09:51 - mmengine - INFO - Epoch(train)  [4][10/31]  lr: 4.1041e-04  eta: 0:01:56  time: 0.4467  data_time: 0.0168  memory: 5433  loss: 0.6976  loss_rpn_cls: 0.0234  loss_rpn_bbox: 0.0073  s0.loss_cls: 0.1352  s0.acc: 95.1172  s0.loss_bbox: 0.0348  s0.loss_mask: 0.1629  s1.loss_cls: 0.0894  s1.acc: 97.5480  s1.loss_bbox: 0.0333  s1.loss_mask: 0.0839  s2.loss_cls: 0.0586  s2.acc: 94.6095  s2.loss_bbox: 0.0242  s2.loss_mask: 0.0447
+2023/02/09 14:09:56 - mmengine - INFO - Epoch(train)  [4][20/31]  lr: 4.5045e-04  eta: 0:01:52  time: 0.4464  data_time: 0.0141  memory: 5043  loss: 0.5945  loss_rpn_cls: 0.0215  loss_rpn_bbox: 0.0063  s0.loss_cls: 0.1095  s0.acc: 96.8750  s0.loss_bbox: 0.0295  s0.loss_mask: 0.1450  s1.loss_cls: 0.0695  s1.acc: 96.0938  s1.loss_bbox: 0.0282  s1.loss_mask: 0.0748  s2.loss_cls: 0.0474  s2.acc: 95.8984  s2.loss_bbox: 0.0216  s2.loss_mask: 0.0412
+2023/02/09 14:10:00 - mmengine - INFO - Epoch(train)  [4][30/31]  lr: 4.9049e-04  eta: 0:01:48  time: 0.4434  data_time: 0.0132  memory: 5191  loss: 0.5401  loss_rpn_cls: 0.0204  loss_rpn_bbox: 0.0062  s0.loss_cls: 0.0982  s0.acc: 98.5352  s0.loss_bbox: 0.0305  s0.loss_mask: 0.1317  s1.loss_cls: 0.0591  s1.acc: 99.3164  s1.loss_bbox: 0.0271  s1.loss_mask: 0.0674  s2.loss_cls: 0.0411  s2.acc: 99.0234  s2.loss_bbox: 0.0210  s2.loss_mask: 0.0374
+2023/02/09 14:10:00 - mmengine - INFO - Exp name: cascade-mask-rcnn_r50_fpn_1x_coco_20230209_140842
+2023/02/09 14:10:00 - mmengine - INFO - Saving checkpoint at 4 epochs
+2023/02/09 14:10:04 - mmengine - INFO - Epoch(val)  [4][10/13]    eta: 0:00:00  time: 0.3411  data_time: 0.0210  memory: 3269  
+2023/02/09 14:10:04 - mmengine - INFO - Evaluating bbox...
+2023/02/09 14:10:04 - mmengine - INFO - bbox_mAP_copypaste: 0.792 0.881 0.872 0.077 0.716 0.846
+2023/02/09 14:10:04 - mmengine - INFO - Evaluating segm...
+2023/02/09 14:10:04 - mmengine - INFO - segm_mAP_copypaste: 0.805 0.881 0.869 0.036 0.731 0.861
+2023/02/09 14:10:04 - mmengine - INFO - Epoch(val) [4][13/13]  coco/bbox_mAP: 0.7920  coco/bbox_mAP_50: 0.8810  coco/bbox_mAP_75: 0.8720  coco/bbox_mAP_s: 0.0770  coco/bbox_mAP_m: 0.7160  coco/bbox_mAP_l: 0.8460  coco/segm_mAP: 0.8050  coco/segm_mAP_50: 0.8810  coco/segm_mAP_75: 0.8690  coco/segm_mAP_s: 0.0360  coco/segm_mAP_m: 0.7310  coco/segm_mAP_l: 0.8610
+2023/02/09 14:10:09 - mmengine - INFO - Epoch(train)  [5][10/31]  lr: 5.3453e-04  eta: 0:01:42  time: 0.4332  data_time: 0.0160  memory: 4963  loss: 0.4684  loss_rpn_cls: 0.0194  loss_rpn_bbox: 0.0054  s0.loss_cls: 0.0871  s0.acc: 99.4141  s0.loss_bbox: 0.0261  s0.loss_mask: 0.1127  s1.loss_cls: 0.0491  s1.acc: 99.9023  s1.loss_bbox: 0.0241  s1.loss_mask: 0.0581  s2.loss_cls: 0.0352  s2.acc: 99.8047  s2.loss_bbox: 0.0186  s2.loss_mask: 0.0324
+2023/02/09 14:10:13 - mmengine - INFO - Epoch(train)  [5][20/31]  lr: 5.7457e-04  eta: 0:01:38  time: 0.4357  data_time: 0.0153  memory: 5135  loss: 0.4510  loss_rpn_cls: 0.0172  loss_rpn_bbox: 0.0055  s0.loss_cls: 0.0829  s0.acc: 98.3398  s0.loss_bbox: 0.0272  s0.loss_mask: 0.1111  s1.loss_cls: 0.0440  s1.acc: 98.4504  s1.loss_bbox: 0.0248  s1.loss_mask: 0.0553  s2.loss_cls: 0.0319  s2.acc: 97.6670  s2.loss_bbox: 0.0201  s2.loss_mask: 0.0309
+2023/02/09 14:10:18 - mmengine - INFO - Epoch(train)  [5][30/31]  lr: 6.1461e-04  eta: 0:01:34  time: 0.4307  data_time: 0.0140  memory: 5397  loss: 0.4463  loss_rpn_cls: 0.0175  loss_rpn_bbox: 0.0055  s0.loss_cls: 0.0805  s0.acc: 99.7070  s0.loss_bbox: 0.0279  s0.loss_mask: 0.1134  s1.loss_cls: 0.0404  s1.acc: 99.9023  s1.loss_bbox: 0.0266  s1.loss_mask: 0.0546  s2.loss_cls: 0.0290  s2.acc: 99.9023  s2.loss_bbox: 0.0211  s2.loss_mask: 0.0300
+2023/02/09 14:10:18 - mmengine - INFO - Exp name: cascade-mask-rcnn_r50_fpn_1x_coco_20230209_140842
+2023/02/09 14:10:18 - mmengine - INFO - Saving checkpoint at 5 epochs
+2023/02/09 14:10:21 - mmengine - INFO - Epoch(val)  [5][10/13]    eta: 0:00:00  time: 0.2629  data_time: 0.0195  memory: 2579  
+2023/02/09 14:10:22 - mmengine - INFO - Evaluating bbox...
+2023/02/09 14:10:22 - mmengine - INFO - bbox_mAP_copypaste: 0.803 0.897 0.883 0.100 0.715 0.857
+2023/02/09 14:10:22 - mmengine - INFO - Evaluating segm...
+2023/02/09 14:10:22 - mmengine - INFO - segm_mAP_copypaste: 0.817 0.897 0.877 0.044 0.730 0.871
+2023/02/09 14:10:22 - mmengine - INFO - Epoch(val) [5][13/13]  coco/bbox_mAP: 0.8030  coco/bbox_mAP_50: 0.8970  coco/bbox_mAP_75: 0.8830  coco/bbox_mAP_s: 0.1000  coco/bbox_mAP_m: 0.7150  coco/bbox_mAP_l: 0.8570  coco/segm_mAP: 0.8170  coco/segm_mAP_50: 0.8970  coco/segm_mAP_75: 0.8770  coco/segm_mAP_s: 0.0440  coco/segm_mAP_m: 0.7300  coco/segm_mAP_l: 0.8710
+2023/02/09 14:10:26 - mmengine - INFO - Epoch(train)  [6][10/31]  lr: 6.5866e-04  eta: 0:01:29  time: 0.4310  data_time: 0.0190  memory: 5110  loss: 0.4218  loss_rpn_cls: 0.0149  loss_rpn_bbox: 0.0057  s0.loss_cls: 0.0770  s0.acc: 99.0234  s0.loss_bbox: 0.0271  s0.loss_mask: 0.1069  s1.loss_cls: 0.0372  s1.acc: 98.2422  s1.loss_bbox: 0.0268  s1.loss_mask: 0.0511  s2.loss_cls: 0.0265  s2.acc: 97.9492  s2.loss_bbox: 0.0209  s2.loss_mask: 0.0279
+2023/02/09 14:10:31 - mmengine - INFO - Epoch(train)  [6][20/31]  lr: 6.9870e-04  eta: 0:01:25  time: 0.4334  data_time: 0.0170  memory: 5391  loss: 0.4015  loss_rpn_cls: 0.0145  loss_rpn_bbox: 0.0055  s0.loss_cls: 0.0708  s0.acc: 97.3633  s0.loss_bbox: 0.0254  s0.loss_mask: 0.1065  s1.loss_cls: 0.0335  s1.acc: 97.2656  s1.loss_bbox: 0.0256  s1.loss_mask: 0.0492  s2.loss_cls: 0.0237  s2.acc: 95.3125  s2.loss_bbox: 0.0202  s2.loss_mask: 0.0267
+2023/02/09 14:10:35 - mmengine - INFO - Epoch(train)  [6][30/31]  lr: 7.3874e-04  eta: 0:01:20  time: 0.4320  data_time: 0.0157  memory: 5039  loss: 0.3861  loss_rpn_cls: 0.0134  loss_rpn_bbox: 0.0053  s0.loss_cls: 0.0671  s0.acc: 97.1680  s0.loss_bbox: 0.0239  s0.loss_mask: 0.1040  s1.loss_cls: 0.0312  s1.acc: 98.9258  s1.loss_bbox: 0.0253  s1.loss_mask: 0.0476  s2.loss_cls: 0.0218  s2.acc: 99.2188  s2.loss_bbox: 0.0206  s2.loss_mask: 0.0259
+2023/02/09 14:10:35 - mmengine - INFO - Exp name: cascade-mask-rcnn_r50_fpn_1x_coco_20230209_140842
+2023/02/09 14:10:35 - mmengine - INFO - Saving checkpoint at 6 epochs
+2023/02/09 14:10:55 - mmengine - INFO - Epoch(val)  [6][10/13]    eta: 0:00:00  time: 0.2033  data_time: 0.0195  memory: 3465  
+2023/02/09 14:10:55 - mmengine - INFO - Evaluating bbox...
+2023/02/09 14:10:55 - mmengine - INFO - bbox_mAP_copypaste: 0.803 0.897 0.878 0.118 0.714 0.854
+2023/02/09 14:10:55 - mmengine - INFO - Evaluating segm...
+2023/02/09 14:10:55 - mmengine - INFO - segm_mAP_copypaste: 0.811 0.897 0.877 0.057 0.731 0.857
+2023/02/09 14:10:55 - mmengine - INFO - Epoch(val) [6][13/13]  coco/bbox_mAP: 0.8030  coco/bbox_mAP_50: 0.8970  coco/bbox_mAP_75: 0.8780  coco/bbox_mAP_s: 0.1180  coco/bbox_mAP_m: 0.7140  coco/bbox_mAP_l: 0.8540  coco/segm_mAP: 0.8110  coco/segm_mAP_50: 0.8970  coco/segm_mAP_75: 0.8770  coco/segm_mAP_s: 0.0570  coco/segm_mAP_m: 0.7310  coco/segm_mAP_l: 0.8570
+2023/02/09 14:11:00 - mmengine - INFO - Epoch(train)  [7][10/31]  lr: 7.8278e-04  eta: 0:01:16  time: 0.4355  data_time: 0.0184  memory: 5249  loss: 0.3717  loss_rpn_cls: 0.0122  loss_rpn_bbox: 0.0050  s0.loss_cls: 0.0656  s0.acc: 98.9258  s0.loss_bbox: 0.0233  s0.loss_mask: 0.1018  s1.loss_cls: 0.0296  s1.acc: 99.6094  s1.loss_bbox: 0.0243  s1.loss_mask: 0.0454  s2.loss_cls: 0.0205  s2.acc: 99.4141  s2.loss_bbox: 0.0195  s2.loss_mask: 0.0245
+2023/02/09 14:11:04 - mmengine - INFO - Epoch(train)  [7][20/31]  lr: 8.2282e-04  eta: 0:01:12  time: 0.4328  data_time: 0.0139  memory: 5220  loss: 0.3537  loss_rpn_cls: 0.0105  loss_rpn_bbox: 0.0049  s0.loss_cls: 0.0622  s0.acc: 99.7070  s0.loss_bbox: 0.0233  s0.loss_mask: 0.0968  s1.loss_cls: 0.0280  s1.acc: 99.6094  s1.loss_bbox: 0.0226  s1.loss_mask: 0.0434  s2.loss_cls: 0.0191  s2.acc: 100.0000  s2.loss_bbox: 0.0189  s2.loss_mask: 0.0239
+2023/02/09 14:11:08 - mmengine - INFO - Epoch(train)  [7][30/31]  lr: 8.6286e-04  eta: 0:01:07  time: 0.4294  data_time: 0.0125  memory: 4982  loss: 0.3345  loss_rpn_cls: 0.0098  loss_rpn_bbox: 0.0045  s0.loss_cls: 0.0579  s0.acc: 98.7305  s0.loss_bbox: 0.0223  s0.loss_mask: 0.0941  s1.loss_cls: 0.0256  s1.acc: 98.6328  s1.loss_bbox: 0.0212  s1.loss_mask: 0.0416  s2.loss_cls: 0.0173  s2.acc: 98.4375  s2.loss_bbox: 0.0178  s2.loss_mask: 0.0226
+2023/02/09 14:11:08 - mmengine - INFO - Exp name: cascade-mask-rcnn_r50_fpn_1x_coco_20230209_140842
+2023/02/09 14:11:08 - mmengine - INFO - Saving checkpoint at 7 epochs
+2023/02/09 14:11:11 - mmengine - INFO - Epoch(val)  [7][10/13]    eta: 0:00:00  time: 0.1713  data_time: 0.0207  memory: 2508  
+2023/02/09 14:11:12 - mmengine - INFO - Evaluating bbox...
+2023/02/09 14:11:12 - mmengine - INFO - bbox_mAP_copypaste: 0.793 0.890 0.873 0.000 0.731 0.846
+2023/02/09 14:11:12 - mmengine - INFO - Evaluating segm...
+2023/02/09 14:11:12 - mmengine - INFO - segm_mAP_copypaste: 0.812 0.890 0.874 0.000 0.739 0.863
+2023/02/09 14:11:12 - mmengine - INFO - Epoch(val) [7][13/13]  coco/bbox_mAP: 0.7930  coco/bbox_mAP_50: 0.8900  coco/bbox_mAP_75: 0.8730  coco/bbox_mAP_s: 0.0000  coco/bbox_mAP_m: 0.7310  coco/bbox_mAP_l: 0.8460  coco/segm_mAP: 0.8120  coco/segm_mAP_50: 0.8900  coco/segm_mAP_75: 0.8740  coco/segm_mAP_s: 0.0000  coco/segm_mAP_m: 0.7390  coco/segm_mAP_l: 0.8630
+2023/02/09 14:11:17 - mmengine - INFO - Epoch(train)  [8][10/31]  lr: 9.0691e-04  eta: 0:01:02  time: 0.4357  data_time: 0.0172  memory: 5206  loss: 0.3158  loss_rpn_cls: 0.0089  loss_rpn_bbox: 0.0045  s0.loss_cls: 0.0547  s0.acc: 95.5078  s0.loss_bbox: 0.0206  s0.loss_mask: 0.0901  s1.loss_cls: 0.0236  s1.acc: 94.1922  s1.loss_bbox: 0.0191  s1.loss_mask: 0.0408  s2.loss_cls: 0.0158  s2.acc: 91.1475  s2.loss_bbox: 0.0158  s2.loss_mask: 0.0220
+2023/02/09 14:11:21 - mmengine - INFO - Epoch(train)  [8][20/31]  lr: 9.4695e-04  eta: 0:00:58  time: 0.4430  data_time: 0.0155  memory: 5432  loss: 0.3124  loss_rpn_cls: 0.0090  loss_rpn_bbox: 0.0042  s0.loss_cls: 0.0529  s0.acc: 98.7305  s0.loss_bbox: 0.0205  s0.loss_mask: 0.0919  s1.loss_cls: 0.0218  s1.acc: 99.0234  s1.loss_bbox: 0.0187  s1.loss_mask: 0.0413  s2.loss_cls: 0.0146  s2.acc: 99.7070  s2.loss_bbox: 0.0155  s2.loss_mask: 0.0221
+2023/02/09 14:11:25 - mmengine - INFO - Epoch(train)  [8][30/31]  lr: 9.8699e-04  eta: 0:00:54  time: 0.4358  data_time: 0.0139  memory: 5253  loss: 0.2912  loss_rpn_cls: 0.0081  loss_rpn_bbox: 0.0037  s0.loss_cls: 0.0475  s0.acc: 98.5352  s0.loss_bbox: 0.0179  s0.loss_mask: 0.0886  s1.loss_cls: 0.0196  s1.acc: 99.5117  s1.loss_bbox: 0.0165  s1.loss_mask: 0.0402  s2.loss_cls: 0.0133  s2.acc: 99.3124  s2.loss_bbox: 0.0142  s2.loss_mask: 0.0215
+2023/02/09 14:11:26 - mmengine - INFO - Exp name: cascade-mask-rcnn_r50_fpn_1x_coco_20230209_140842
+2023/02/09 14:11:26 - mmengine - INFO - Saving checkpoint at 8 epochs
+2023/02/09 14:11:28 - mmengine - INFO - Epoch(val)  [8][10/13]    eta: 0:00:00  time: 0.1524  data_time: 0.0227  memory: 2488  
+2023/02/09 14:11:29 - mmengine - INFO - Evaluating bbox...
+2023/02/09 14:11:29 - mmengine - INFO - bbox_mAP_copypaste: 0.798 0.890 0.874 0.000 0.736 0.847
+2023/02/09 14:11:29 - mmengine - INFO - Evaluating segm...
+2023/02/09 14:11:29 - mmengine - INFO - segm_mAP_copypaste: 0.806 0.890 0.873 0.000 0.724 0.861
+2023/02/09 14:11:29 - mmengine - INFO - Epoch(val) [8][13/13]  coco/bbox_mAP: 0.7980  coco/bbox_mAP_50: 0.8900  coco/bbox_mAP_75: 0.8740  coco/bbox_mAP_s: 0.0000  coco/bbox_mAP_m: 0.7360  coco/bbox_mAP_l: 0.8470  coco/segm_mAP: 0.8060  coco/segm_mAP_50: 0.8900  coco/segm_mAP_75: 0.8730  coco/segm_mAP_s: 0.0000  coco/segm_mAP_m: 0.7240  coco/segm_mAP_l: 0.8610
+2023/02/09 14:11:34 - mmengine - INFO - Epoch(train)  [9][10/31]  lr: 1.0310e-04  eta: 0:00:49  time: 0.4442  data_time: 0.0173  memory: 5109  loss: 0.2810  loss_rpn_cls: 0.0081  loss_rpn_bbox: 0.0035  s0.loss_cls: 0.0465  s0.acc: 99.3164  s0.loss_bbox: 0.0162  s0.loss_mask: 0.0868  s1.loss_cls: 0.0188  s1.acc: 99.8047  s1.loss_bbox: 0.0150  s1.loss_mask: 0.0398  s2.loss_cls: 0.0126  s2.acc: 100.0000  s2.loss_bbox: 0.0126  s2.loss_mask: 0.0212
+2023/02/09 14:11:38 - mmengine - INFO - Epoch(train)  [9][20/31]  lr: 1.0711e-04  eta: 0:00:45  time: 0.4478  data_time: 0.0140  memory: 5132  loss: 0.2804  loss_rpn_cls: 0.0068  loss_rpn_bbox: 0.0035  s0.loss_cls: 0.0467  s0.acc: 97.3633  s0.loss_bbox: 0.0170  s0.loss_mask: 0.0863  s1.loss_cls: 0.0182  s1.acc: 97.5510  s1.loss_bbox: 0.0156  s1.loss_mask: 0.0394  s2.loss_cls: 0.0123  s2.acc: 97.8216  s2.loss_bbox: 0.0132  s2.loss_mask: 0.0213
+2023/02/09 14:11:42 - mmengine - INFO - Epoch(train)  [9][30/31]  lr: 1.1111e-04  eta: 0:00:40  time: 0.4428  data_time: 0.0131  memory: 5433  loss: 0.2792  loss_rpn_cls: 0.0063  loss_rpn_bbox: 0.0034  s0.loss_cls: 0.0481  s0.acc: 98.3398  s0.loss_bbox: 0.0172  s0.loss_mask: 0.0846  s1.loss_cls: 0.0183  s1.acc: 98.9950  s1.loss_bbox: 0.0158  s1.loss_mask: 0.0388  s2.loss_cls: 0.0119  s2.acc: 99.3827  s2.loss_bbox: 0.0137  s2.loss_mask: 0.0210
+2023/02/09 14:11:43 - mmengine - INFO - Exp name: cascade-mask-rcnn_r50_fpn_1x_coco_20230209_140842
+2023/02/09 14:11:43 - mmengine - INFO - Saving checkpoint at 9 epochs
+2023/02/09 14:11:45 - mmengine - INFO - Epoch(val)  [9][10/13]    eta: 0:00:00  time: 0.1386  data_time: 0.0229  memory: 3268  
+2023/02/09 14:11:46 - mmengine - INFO - Evaluating bbox...
+2023/02/09 14:11:46 - mmengine - INFO - bbox_mAP_copypaste: 0.802 0.890 0.873 0.000 0.753 0.852
+2023/02/09 14:11:46 - mmengine - INFO - Evaluating segm...
+2023/02/09 14:11:46 - mmengine - INFO - segm_mAP_copypaste: 0.804 0.890 0.873 0.000 0.730 0.856
+2023/02/09 14:11:46 - mmengine - INFO - Epoch(val) [9][13/13]  coco/bbox_mAP: 0.8020  coco/bbox_mAP_50: 0.8900  coco/bbox_mAP_75: 0.8730  coco/bbox_mAP_s: 0.0000  coco/bbox_mAP_m: 0.7530  coco/bbox_mAP_l: 0.8520  coco/segm_mAP: 0.8040  coco/segm_mAP_50: 0.8900  coco/segm_mAP_75: 0.8730  coco/segm_mAP_s: 0.0000  coco/segm_mAP_m: 0.7300  coco/segm_mAP_l: 0.8560
+2023/02/09 14:11:50 - mmengine - INFO - Epoch(train) [10][10/31]  lr: 1.1552e-04  eta: 0:00:36  time: 0.4450  data_time: 0.0170  memory: 5266  loss: 0.2811  loss_rpn_cls: 0.0055  loss_rpn_bbox: 0.0037  s0.loss_cls: 0.0504  s0.acc: 98.8281  s0.loss_bbox: 0.0179  s0.loss_mask: 0.0845  s1.loss_cls: 0.0190  s1.acc: 98.9723  s1.loss_bbox: 0.0161  s1.loss_mask: 0.0376  s2.loss_cls: 0.0124  s2.acc: 99.4681  s2.loss_bbox: 0.0137  s2.loss_mask: 0.0204
+2023/02/09 14:11:55 - mmengine - INFO - Epoch(train) [10][20/31]  lr: 1.1952e-04  eta: 0:00:31  time: 0.4431  data_time: 0.0144  memory: 5163  loss: 0.2686  loss_rpn_cls: 0.0051  loss_rpn_bbox: 0.0032  s0.loss_cls: 0.0470  s0.acc: 98.7305  s0.loss_bbox: 0.0167  s0.loss_mask: 0.0823  s1.loss_cls: 0.0177  s1.acc: 98.1445  s1.loss_bbox: 0.0149  s1.loss_mask: 0.0379  s2.loss_cls: 0.0114  s2.acc: 97.4609  s2.loss_bbox: 0.0123  s2.loss_mask: 0.0201
+2023/02/09 14:11:59 - mmengine - INFO - Epoch(train) [10][30/31]  lr: 1.2352e-04  eta: 0:00:27  time: 0.4371  data_time: 0.0146  memory: 5374  loss: 0.2704  loss_rpn_cls: 0.0058  loss_rpn_bbox: 0.0032  s0.loss_cls: 0.0465  s0.acc: 96.7773  s0.loss_bbox: 0.0167  s0.loss_mask: 0.0831  s1.loss_cls: 0.0172  s1.acc: 98.4076  s1.loss_bbox: 0.0154  s1.loss_mask: 0.0384  s2.loss_cls: 0.0109  s2.acc: 98.6985  s2.loss_bbox: 0.0129  s2.loss_mask: 0.0203
+2023/02/09 14:11:59 - mmengine - INFO - Exp name: cascade-mask-rcnn_r50_fpn_1x_coco_20230209_140842
+2023/02/09 14:11:59 - mmengine - INFO - Saving checkpoint at 10 epochs
+2023/02/09 14:12:03 - mmengine - INFO - Epoch(val) [10][10/13]    eta: 0:00:00  time: 0.1346  data_time: 0.0233  memory: 3268  
+2023/02/09 14:12:03 - mmengine - INFO - Evaluating bbox...
+2023/02/09 14:12:03 - mmengine - INFO - bbox_mAP_copypaste: 0.801 0.889 0.872 0.000 0.742 0.852
+2023/02/09 14:12:03 - mmengine - INFO - Evaluating segm...
+2023/02/09 14:12:03 - mmengine - INFO - segm_mAP_copypaste: 0.803 0.889 0.872 0.000 0.719 0.856
+2023/02/09 14:12:03 - mmengine - INFO - Epoch(val) [10][13/13]  coco/bbox_mAP: 0.8010  coco/bbox_mAP_50: 0.8890  coco/bbox_mAP_75: 0.8720  coco/bbox_mAP_s: 0.0000  coco/bbox_mAP_m: 0.7420  coco/bbox_mAP_l: 0.8520  coco/segm_mAP: 0.8030  coco/segm_mAP_50: 0.8890  coco/segm_mAP_75: 0.8720  coco/segm_mAP_s: 0.0000  coco/segm_mAP_m: 0.7190  coco/segm_mAP_l: 0.8560
+2023/02/09 14:12:07 - mmengine - INFO - Epoch(train) [11][10/31]  lr: 1.2793e-04  eta: 0:00:22  time: 0.4388  data_time: 0.0177  memory: 4917  loss: 0.2800  loss_rpn_cls: 0.0056  loss_rpn_bbox: 0.0038  s0.loss_cls: 0.0491  s0.acc: 99.0234  s0.loss_bbox: 0.0175  s0.loss_mask: 0.0852  s1.loss_cls: 0.0187  s1.acc: 100.0000  s1.loss_bbox: 0.0159  s1.loss_mask: 0.0382  s2.loss_cls: 0.0122  s2.acc: 99.8047  s2.loss_bbox: 0.0134  s2.loss_mask: 0.0205
+2023/02/09 14:12:12 - mmengine - INFO - Epoch(train) [11][20/31]  lr: 1.3193e-04  eta: 0:00:18  time: 0.4339  data_time: 0.0152  memory: 5399  loss: 0.2692  loss_rpn_cls: 0.0060  loss_rpn_bbox: 0.0036  s0.loss_cls: 0.0453  s0.acc: 98.6328  s0.loss_bbox: 0.0156  s0.loss_mask: 0.0838  s1.loss_cls: 0.0175  s1.acc: 99.7070  s1.loss_bbox: 0.0146  s1.loss_mask: 0.0383  s2.loss_cls: 0.0115  s2.acc: 100.0000  s2.loss_bbox: 0.0124  s2.loss_mask: 0.0205
+2023/02/09 14:12:16 - mmengine - INFO - Epoch(train) [11][30/31]  lr: 1.3594e-04  eta: 0:00:13  time: 0.4325  data_time: 0.0142  memory: 5401  loss: 0.2748  loss_rpn_cls: 0.0066  loss_rpn_bbox: 0.0035  s0.loss_cls: 0.0472  s0.acc: 99.5117  s0.loss_bbox: 0.0161  s0.loss_mask: 0.0828  s1.loss_cls: 0.0180  s1.acc: 99.9023  s1.loss_bbox: 0.0157  s1.loss_mask: 0.0387  s2.loss_cls: 0.0115  s2.acc: 99.8047  s2.loss_bbox: 0.0137  s2.loss_mask: 0.0209
+2023/02/09 14:12:16 - mmengine - INFO - Exp name: cascade-mask-rcnn_r50_fpn_1x_coco_20230209_140842
+2023/02/09 14:12:16 - mmengine - INFO - Saving checkpoint at 11 epochs
+2023/02/09 14:12:19 - mmengine - INFO - Epoch(val) [11][10/13]    eta: 0:00:00  time: 0.1353  data_time: 0.0233  memory: 2529  
+2023/02/09 14:12:19 - mmengine - INFO - Evaluating bbox...
+2023/02/09 14:12:19 - mmengine - INFO - bbox_mAP_copypaste: 0.799 0.890 0.873 0.000 0.736 0.853
+2023/02/09 14:12:19 - mmengine - INFO - Evaluating segm...
+2023/02/09 14:12:19 - mmengine - INFO - segm_mAP_copypaste: 0.808 0.890 0.873 0.000 0.725 0.860
+2023/02/09 14:12:19 - mmengine - INFO - Epoch(val) [11][13/13]  coco/bbox_mAP: 0.7990  coco/bbox_mAP_50: 0.8900  coco/bbox_mAP_75: 0.8730  coco/bbox_mAP_s: 0.0000  coco/bbox_mAP_m: 0.7360  coco/bbox_mAP_l: 0.8530  coco/segm_mAP: 0.8080  coco/segm_mAP_50: 0.8900  coco/segm_mAP_75: 0.8730  coco/segm_mAP_s: 0.0000  coco/segm_mAP_m: 0.7250  coco/segm_mAP_l: 0.8600
+2023/02/09 14:12:24 - mmengine - INFO - Epoch(train) [12][10/31]  lr: 1.4034e-05  eta: 0:00:09  time: 0.4322  data_time: 0.0179  memory: 5154  loss: 0.2789  loss_rpn_cls: 0.0064  loss_rpn_bbox: 0.0038  s0.loss_cls: 0.0489  s0.acc: 98.4375  s0.loss_bbox: 0.0164  s0.loss_mask: 0.0830  s1.loss_cls: 0.0187  s1.acc: 98.8706  s1.loss_bbox: 0.0163  s1.loss_mask: 0.0384  s2.loss_cls: 0.0120  s2.acc: 99.2553  s2.loss_bbox: 0.0143  s2.loss_mask: 0.0208
+2023/02/09 14:12:28 - mmengine - INFO - Epoch(train) [12][20/31]  lr: 1.4434e-05  eta: 0:00:04  time: 0.4285  data_time: 0.0148  memory: 5117  loss: 0.2654  loss_rpn_cls: 0.0056  loss_rpn_bbox: 0.0032  s0.loss_cls: 0.0453  s0.acc: 97.3633  s0.loss_bbox: 0.0153  s0.loss_mask: 0.0812  s1.loss_cls: 0.0171  s1.acc: 98.2000  s1.loss_bbox: 0.0145  s1.loss_mask: 0.0381  s2.loss_cls: 0.0109  s2.acc: 99.0927  s2.loss_bbox: 0.0133  s2.loss_mask: 0.0208
+2023/02/09 14:12:32 - mmengine - INFO - Epoch(train) [12][30/31]  lr: 1.4835e-05  eta: 0:00:00  time: 0.4289  data_time: 0.0147  memory: 5229  loss: 0.2731  loss_rpn_cls: 0.0061  loss_rpn_bbox: 0.0034  s0.loss_cls: 0.0480  s0.acc: 94.0430  s0.loss_bbox: 0.0161  s0.loss_mask: 0.0814  s1.loss_cls: 0.0179  s1.acc: 95.5580  s1.loss_bbox: 0.0153  s1.loss_mask: 0.0391  s2.loss_cls: 0.0111  s2.acc: 95.8520  s2.loss_bbox: 0.0137  s2.loss_mask: 0.0211
+2023/02/09 14:12:33 - mmengine - INFO - Exp name: cascade-mask-rcnn_r50_fpn_1x_coco_20230209_140842
+2023/02/09 14:12:33 - mmengine - INFO - Saving checkpoint at 12 epochs
+2023/02/09 14:12:36 - mmengine - INFO - Epoch(val) [12][10/13]    eta: 0:00:00  time: 0.1350  data_time: 0.0233  memory: 2431  
+2023/02/09 14:12:36 - mmengine - INFO - Evaluating bbox...
+2023/02/09 14:12:36 - mmengine - INFO - bbox_mAP_copypaste: 0.799 0.890 0.873 0.000 0.736 0.853
+2023/02/09 14:12:36 - mmengine - INFO - Evaluating segm...
+2023/02/09 14:12:36 - mmengine - INFO - segm_mAP_copypaste: 0.808 0.890 0.873 0.000 0.725 0.860
+2023/02/09 14:12:36 - mmengine - INFO - Epoch(val) [12][13/13]  coco/bbox_mAP: 0.7990  coco/bbox_mAP_50: 0.8900  coco/bbox_mAP_75: 0.8730  coco/bbox_mAP_s: 0.0000  coco/bbox_mAP_m: 0.7360  coco/bbox_mAP_l: 0.8530  coco/segm_mAP: 0.8080  coco/segm_mAP_50: 0.8900  coco/segm_mAP_75: 0.8730  coco/segm_mAP_s: 0.0000  coco/segm_mAP_m: 0.7250  coco/segm_mAP_l: 0.8600
